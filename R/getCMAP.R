@@ -20,13 +20,10 @@ function (std=c("combat", "quantile", "none"), gene=TRUE, verbose=FALSE) {
   # from inSilicoDb at runtime on the cluster, as there is not internet connection
   ###########################
   
-  file1 = file.path("cache/ISDB12026GPL96_RNA_FRMAPROBE_24805.RData")
-  file2 = file.path("cache/ISDB12026GPL3921_RNA_FRMAPROBE_24805.RData")
-  file3 = file.path("cache/ISDB12210GPL3921_RNA_FRMAPROBE_24802.RData")
+  file1 <- file.path("cache/ISDB12026GPL96_RNA_FRMAPROBE_24805.RData")
+  file2 <- file.path("cache/ISDB12026GPL3921_RNA_FRMAPROBE_24805.RData")
   if (!file.exists(file1)) { message("File 1 not found")}
   if (!file.exists(file2)) { message("File 2 not found")}
-  if (!file.exists(file3)) { message("File 3 not found")}
-  message(getwd())
   
   if (!(file.exists(file1) && file.exists(file2) && file.exists(file3))) {
     message("Logging in to InSilicoDb")
@@ -36,6 +33,9 @@ function (std=c("combat", "quantile", "none"), gene=TRUE, verbose=FALSE) {
     platfs <- inSilicoDb::getPlatforms(dataset="ISDB12026")
     esets <- inSilicoDb::getDatasets(dataset="ISDB12026", norm="FRMA", curation="24805", features="PROBE")
     inSilicoDb::InSilicoLogout()
+  }
+  else {
+    esets <- c(file1, file2)
   }
   ## merge esets
   if (verbose) { message("Merging CMAP1 and CMAP2") }
