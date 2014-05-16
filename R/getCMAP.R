@@ -23,8 +23,12 @@ function (std=c("combat", "quantile", "none"), gene=TRUE, verbose=FALSE) {
   file1 = file.path("cache/ISDB12026GPL96_RNA_FRMAPROBE_24805.RData")
   file2 = file.path("cache/ISDB12026GPL3921_RNA_FRMAPROBE_24805.RData")
   file3 = file.path("cache/ISDB12210GPL3921_RNA_FRMAPROBE_24802.RData")
+  if (!file.exists(file1)) { message("File 1 not found")}
+  if (!file.exists(file2)) { message("File 2 not found")}
+  if (!file.exists(file3)) { message("File 3 not found")}
   
   if (!(file.exists(file1) && file.exists(file2) && file.exists(file3))) {
+    message("Logging in to InSilicoDb")
     inSilicoDb::InSilicoLogin(login="bhaibeka@gmail.com", password="747779bec8a754b91076d6cc1f700831")
     # inSilicoDb::getCurationInfo(dataset="ISDB12026")
     if (verbose) { message("Downloading the Connectivity Map dataset from InSilicoDB") }
