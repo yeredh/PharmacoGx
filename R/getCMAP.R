@@ -36,7 +36,7 @@ function (std=c("combat", "quantile", "none"), gene=TRUE, verbose=FALSE) {
   }
   else {
     platfs <- c("GPL96", "GPL3921")
-    esets1 <- list(get(load(file1)), get(load(file2)))
+    esets <- list(get(load(file1)), get(load(file2)))
     names(esets) <- c(esets[[1]][[1]][1], esets[[2]][[1]][1])
   }
   ## merge esets
