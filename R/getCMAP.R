@@ -33,8 +33,7 @@ function (std=c("combat", "quantile", "none"), gene=TRUE, verbose=FALSE) {
     platfs <- inSilicoDb::getPlatforms(dataset="ISDB12026")
     esets <- inSilicoDb::getDatasets(dataset="ISDB12026", norm="FRMA", curation="24805", features="PROBE")
     inSilicoDb::InSilicoLogout()
-  }
-  else {
+  } else {
     platfs <- c("GPL96", "GPL3921")
     esets <- list(get(load(file1)), get(load(file2)))
     names(esets) <- c(esets[[1]][[1]][1], esets[[2]][[1]][1])
