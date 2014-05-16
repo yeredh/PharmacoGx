@@ -26,6 +26,7 @@ function (std=c("combat", "quantile", "none"), gene=TRUE, verbose=FALSE) {
   if (!file.exists(file1)) { message("File 1 not found")}
   if (!file.exists(file2)) { message("File 2 not found")}
   if (!file.exists(file3)) { message("File 3 not found")}
+  message(getwd())
   
   if (!(file.exists(file1) && file.exists(file2) && file.exists(file3))) {
     message("Logging in to InSilicoDb")
