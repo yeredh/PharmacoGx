@@ -20,9 +20,9 @@ function (std=c("combat", "quantile", "none"), gene=TRUE, verbose=FALSE) {
   # from inSilicoDb at runtime on the cluster, as there is not internet connection
   ###########################
   
-  file1 = file.path(cache/ISDB12026GPL96_RNA_FRMAPROBE_24805.RData)
-  file2 = file.path(cache/ISDB12026GPL3921_RNA_FRMAPROBE_24805.RData)
-  file3 = file.path(cache/ISDB12210GPL3921_RNA_FRMAPROBE_24802.RData)
+  file1 = file.path("cache/ISDB12026GPL96_RNA_FRMAPROBE_24805.RData")
+  file2 = file.path("cache/ISDB12026GPL3921_RNA_FRMAPROBE_24805.RData")
+  file3 = file.path("cache/ISDB12210GPL3921_RNA_FRMAPROBE_24802.RData")
   
   if (!(file.exists(file1) && file.exists(file2) && file.exists(file3))) {
     inSilicoDb::InSilicoLogin(login="bhaibeka@gmail.com", password="747779bec8a754b91076d6cc1f700831")
