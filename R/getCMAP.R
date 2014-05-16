@@ -17,7 +17,7 @@ function (std=c("combat", "quantile", "none"), gene=TRUE, verbose=FALSE) {
   
   ###########################
   # Preferably file names should not be hard coded, but we cannot fetch the names of the data 
-  # from inSilicoDb at runtime on the cluster, as there is not internet connection
+  # from inSilicoDb at runtime on the cluster, as there is no internet connection
   ###########################
   
   file1 <- file.path("cache/ISDB12026GPL96_RNA_FRMAPROBE_24805.RData")
@@ -35,7 +35,9 @@ function (std=c("combat", "quantile", "none"), gene=TRUE, verbose=FALSE) {
     inSilicoDb::InSilicoLogout()
   }
   else {
-    esets <- list(get(load(file1)), get(load(file2)))
+    platfs <- c("GPL96", "GPL3921")
+    esets1 <- list(get(load(file1)), get(load(file2)))
+    names(esets1) <- c("GPL96", "GPL3921")
   }
   ## merge esets
   if (verbose) { message("Merging CMAP1 and CMAP2") }
