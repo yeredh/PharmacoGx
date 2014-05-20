@@ -36,11 +36,15 @@ function (std=c("combat", "quantile", "none"), gene=TRUE, verbose=FALSE) {
   } else {
     platfs <- c("GPL96", "GPL3921")
     esets <- list(get(load(file1)), get(load(file2)))
-    names(esets) <- c(esets[[1]][[1]][1], esets[[2]][[1]][1])
+    names(esets) <- platfs
   }
   ## merge esets
   if (verbose) { message("Merging CMAP1 and CMAP2") }
-  eset <- MetaGx::platformMerging(esets=esets)
+  ##eset <- MetaGx::platformMerging(esets=esets)
+  ## For development purposes
+  eset <- platformMerging(esets=esets)
+  
+  
   Biobase::pData(eset)[Biobase::pData(eset) == "" | Biobase::pData(eset) == "NA"] <- NA
   ## check column format
   Biobase::pData(eset)[ , "concentration_M"] <- as.numeric(Biobase::pData(eset)[ , "concentration_M"])
