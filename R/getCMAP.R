@@ -40,9 +40,9 @@ function (std=c("combat", "quantile", "none"), gene=TRUE, verbose=FALSE) {
   }
   ## merge esets
   if (verbose) { message("Merging CMAP1 and CMAP2") }
-  ##eset <- MetaGx::platformMerging(esets=esets)
+  eset <- MetaGx::platformMerging(esets=esets)
   ## For development purposes
-  eset <- platformMerging(esets=esets)
+  ##eset <- platformMerging(esets=esets)
   
   
   Biobase::pData(eset)[Biobase::pData(eset) == "" | Biobase::pData(eset) == "NA"] <- NA
