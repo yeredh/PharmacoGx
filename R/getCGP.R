@@ -211,7 +211,7 @@ function (gene=TRUE, tmpdir="tmp", delete.tmpdir=FALSE, cosmic.annotation=FALSE,
   }
   ff <- as.character(unzip(zipfile=file.path(tmpdir, "nature11005-s2.zip"), list=TRUE)[1, 1])
   unzip(zipfile=file.path(tmpdir, "nature11005-s2.zip"), exdir=file.path(tmpdir))
-  tmpfiles <- c(tmpfiles, file.path(tmpdir, "nature_supplementary_information.xls"))
+  tmpfiles <- c(tmpfiles, file.path(tmpdir, "Supplementary_data_final_Apr6.xlsx"))
   
   ## phenotype for the drugs
   if (verbose) { message("Read drug sensitivity measurements") }
@@ -449,7 +449,7 @@ function (gene=TRUE, tmpdir="tmp", delete.tmpdir=FALSE, cosmic.annotation=FALSE,
   ## complement drug infomration with the supplementary infomration from the Nature website
   myfn2 <- file.path(tmpdir, "nature_supplinfo_druginfo_cgp.RData")
   if(!file.exists(myfn2)) {
-    druginfo.nature <- gdata::read.xls(xls=file.path(tmpdir, "nature_supplementary_information.xls"), sheet=4)
+    druginfo.nature <- gdata::read.xls(xls=file.path(tmpdir, "Supplementary_data_final_Apr6.xlsx"), sheet=4)
     druginfo.nature[druginfo.nature == "" | druginfo.nature == " "] <- NA
     save(list="druginfo.nature", compress=TRUE, file=myfn2)
   } else { load(myfn2) }
