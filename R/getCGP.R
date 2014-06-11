@@ -12,7 +12,7 @@
 
 
 ###############
-## TODO cell_id ==?? cellid???
+## TODO cellid ==?? cellid???
 ###############
 
 
@@ -54,14 +54,14 @@ function (gene=TRUE, tmpdir="tmp", delete.tmpdir=FALSE, cosmic.annotation=FALSE,
     "first" = {
       if (verbose) { message("First experiment of each replicate is kept") }
       iix <- order(pheno[ , "file_day"], pheno[ , "file_hour"], decreasing=FALSE, na.last=TRUE)
-      ix <- rownames(pheno)[iix][!duplicated(pheno[iix, "cell_id"])]
+      ix <- rownames(pheno)[iix][!duplicated(pheno[iix, "cellid"])]
       Biobase::exprs(eset) <- Biobase::exprs(eset)[ , ix, drop=FALSE]
       Biobase::pData(eset) <- Biobase::pData(eset)[ix, , drop=FALSE]
     },
     "last" = {
       if (verbose) { message("Last experiment of each replicate is kept") }
       iix <- order(pheno[ , "file_day"], pheno[ , "file_hour"], decreasing=TRUE, na.last=TRUE)
-      ix <- rownames(pheno)[iix][!duplicated(pheno[iix, "cell_id"])]
+      ix <- rownames(pheno)[iix][!duplicated(pheno[iix, "cellid"])]
       Biobase::exprs(eset) <- Biobase::exprs(eset)[ , ix, drop=FALSE]
       Biobase::pData(eset) <- Biobase::pData(eset)[ix, , drop=FALSE]
     },
@@ -72,11 +72,11 @@ function (gene=TRUE, tmpdir="tmp", delete.tmpdir=FALSE, cosmic.annotation=FALSE,
     "median" = {
       if (verbose) { message("Median of replicates is computed") }
       stop(sprintf("Method replicates %s not implemented yet", replicates))
-      ix <- pheno[duplicated(pheno[ , "cell_id"]), "cell_id"]
+      ix <- pheno[duplicated(pheno[ , "cellid"]), "cellid"]
       nn <- NULL
-      ex <- matrix(NA, nrow=nrow(Biobase::fData(eset)), ncol=sum(!duplicated(pheno[ , "cell_id"]), na.rm=TRUE), dimnames=list(rownames(Biobase::fData(eset)), nn))
+      ex <- matrix(NA, nrow=nrow(Biobase::fData(eset)), ncol=sum(!duplicated(pheno[ , "cellid"]), na.rm=TRUE), dimnames=list(rownames(Biobase::fData(eset)), nn))
       for (i in 1:length(ix)) {
-        iix <- !is.na(pheno[ , "cell_id"]) & pheno[ , "cell_id"] == ix[i]
+        iix <- !is.na(pheno[ , "cellid"]) & pheno[ , "cellid"] == ix[i]
         xx <- apply(Biobase::exprs(eset)[ , iix], 1, get(replicates), na.rm=TRUE)
       }
     },
@@ -86,7 +86,7 @@ function (gene=TRUE, tmpdir="tmp", delete.tmpdir=FALSE, cosmic.annotation=FALSE,
   )
   
   ## replace sample names by cell line names
-  nn <- genefu::rename.duplicate(Biobase::pData(eset)[ , "cell_id"], sep="_")$new.x
+  nn <- genefu::rename.duplicate(Biobase::pData(eset)[ , "cellid"], sep="_")$new.x
   rownames(Biobase::pData(eset)) <- colnames(Biobase::exprs(eset)) <- nn
   
   
@@ -249,7 +249,7 @@ function (gene=TRUE, tmpdir="tmp", delete.tmpdir=FALSE, cosmic.annotation=FALSE,
   
   if(any(!is.element(drugpheno[ ,"Cell.Line"], celline[ , "CELL_LINE_NAME"]))) { warning("Some cell line with drug sensitivity data have no annotations") }
   celln <- as.character(drugpheno[ ,"Cell.Line"])
-  drugpheno <- data.frame("cell_id"=celln, drugpheno, stringsAsFactors=FALSE)
+  drugpheno <- data.frame("cellid"=celln, drugpheno, stringsAsFactors=FALSE)
   rownames(drugpheno) <- celln
 
   ## get mutational data, i.e., protein coding variants
@@ -277,23 +277,23 @@ function (gene=TRUE, tmpdir="tmp", delete.tmpdir=FALSE, cosmic.annotation=FALSE,
   })
   
   ## url for cell line collection
-  celline <- data.frame("cell_id"=as.character(celline[ , "CELL_LINE_NAME"]), celline, stringsAsFactors=FALSE)
+  celline <- data.frame("cellid"=as.character(celline[ , "CELL_LINE_NAME"]), celline, stringsAsFactors=FALSE)
   ## add url based on COSMIC IDs
   uurl <- paste("http://cancer.sanger.ac.uk/cell_lines/sample/overview?id=", celline[ , "COSMIC_ID"], sep="")
   uurl[is.na(celline[ , "COSMIC_ID"])] <- NA
-  celline <- data.frame("cell_id"=celline[ , "cell_id"], "link"=uurl, celline[ , !is.element(colnames(celline), "cell_id")], stringsAsFactors=FALSE)
+  celline <- data.frame("cellid"=celline[ , "cellid"], "link"=uurl, celline[ , !is.element(colnames(celline), "cellid")], stringsAsFactors=FALSE)
 
-  ## make sure that cell_id are not factors
-  celline[, "cell_id"] <- as.character(celline[, "cell_id"])
-  Biobase::pData(eset)[, "cell_id"] <- as.character(Biobase::pData(eset)[, "cell_id"])
-  drugpheno[, "cell_id"] <- as.character(drugpheno[, "cell_id"])
+  ## make sure that cellid are not factors
+  celline[, "cellid"] <- as.character(celline[, "cellid"])
+  Biobase::pData(eset)[, "cellid"] <- as.character(Biobase::pData(eset)[, "cellid"])
+  drugpheno[, "cellid"] <- as.character(drugpheno[, "cellid"])
   
   #####
   ## TODO What is going on here?
   #####
   
   ## union of all cell line with data
-  cellnall <- sort(unique(c(row.names(Biobase::pData(eset)), rownames(mutation), as.character(drugpheno[ ,"cell_id"]))))
+  cellnall <- sort(unique(c(row.names(Biobase::pData(eset)), rownames(mutation), as.character(drugpheno[ ,"cellid"]))))
   
   ## update sampleinfo
   dd <- data.frame(matrix(NA, ncol=ncol(Biobase::pData(eset)), nrow=length(cellnall), dimnames=list(cellnall, colnames(Biobase::pData(eset)))), check.names=FALSE)
@@ -310,11 +310,11 @@ function (gene=TRUE, tmpdir="tmp", delete.tmpdir=FALSE, cosmic.annotation=FALSE,
   rownames(dd) <- cellnall
   colnames(dd) <- colnames(drugpheno)
   newlev <- sapply(drugpheno, levels)
-  newlev$cell_id <- cellnall
+  newlev$cellid <- cellnall
   ## genefu::setcolclass.df is NOT in the Bioconductor package, but in the package on github (https://github.com/bhaibeka/genefu/blob/master/R/setcolclass.df.R)
   dd <- genefu::setcolclass.df(df=dd, colclass=sapply(drugpheno, class), factor.levels=newlev)
   dd[rownames(drugpheno),colnames(drugpheno)] <- drugpheno
-  dd[ ,"cell_id"] <- cellnall
+  dd[ ,"cellid"] <- cellnall
   drugpheno <- dd
 
   ## update mutation
@@ -327,11 +327,11 @@ function (gene=TRUE, tmpdir="tmp", delete.tmpdir=FALSE, cosmic.annotation=FALSE,
   iix <- intersect(rownames(celline), cellnall)
   dd[iix, colnames(celline)] <- celline[iix, , drop=FALSE]
   celline <- dd
-  celline[ , "cell_id"] <- celline[ , "CELL_LINE_NAME"] <- rownames(celline)
+  celline[ , "cellid"] <- celline[ , "CELL_LINE_NAME"] <- rownames(celline)
   ## annotate cell lines with curated tissue type
   tissue.type <- read.csv(file.path(system.file("extdata", package="PharmacoGx"), "cell_line_collection_all.csv"), stringsAsFactors=FALSE)
   rownames(tissue.type) <- tissue.type[ , 1]
-  celline <- cbind("tissue.type"=tissue.type[match(celline[ , "cell_id"], tissue.type[ , "cell_id"]), "tissue.type"], celline)
+  celline <- cbind("tissue.type"=tissue.type[match(celline[ , "cellid"], tissue.type[ , "cellid"]), "tissue.type"], celline)
 
 
   # ## reproducibility between different screening sites
@@ -422,8 +422,8 @@ function (gene=TRUE, tmpdir="tmp", delete.tmpdir=FALSE, cosmic.annotation=FALSE,
 #   drugconc <- drugconc2
 # 
 #   ## report concentrations per cell line and per drug
-#   drugconc2 <- data.frame(matrix(NA, nrow=nrow(drugconc) * length(cellnall), ncol=6, dimnames=list(paste(rep(cellnall, times=nrow(drugconc)), rep(rownames(drugconc), each=length(cellnall)), sep="..."), c("cell_id", "drug_id", "drug_name", "nbr_conc_tested", "min_Dose_uM", "max_Dose_uM"))))
-#   drugconc2[ , "cell_id"] <- rep(cellnall, times=nrow(drugconc))
+#   drugconc2 <- data.frame(matrix(NA, nrow=nrow(drugconc) * length(cellnall), ncol=6, dimnames=list(paste(rep(cellnall, times=nrow(drugconc)), rep(rownames(drugconc), each=length(cellnall)), sep="..."), c("cellid", "drug_id", "drug_name", "nbr_conc_tested", "min_Dose_uM", "max_Dose_uM"))))
+#   drugconc2[ , "cellid"] <- rep(cellnall, times=nrow(drugconc))
 #   drugconc2[ , "drug_id"] <- rep(rownames(drugconc), each=length(cellnall))
 #   drugconc2[ , "drug_name"] <- rep(as.character(drugconc[ ,"drug.name"]), each=length(cellnall))
 #   ## as mentioned in the supplementary information of Garnett et al., a single cell line is used on each plate and treated with 28 different drugs over a 9-pt, 256-fold concentration range
@@ -431,7 +431,7 @@ function (gene=TRUE, tmpdir="tmp", delete.tmpdir=FALSE, cosmic.annotation=FALSE,
 #   drugconc2[ , "min_Dose_uM"] <- rep(drugconc[ , "Min.Concentration.micromolar."], each=length(cellnall))
 #   drugconc2[ , "max_Dose_uM"] <- rep(drugconc[ , "Max.Concentration.micromolar."], each=length(cellnall))
 #   drugconc <- drugconc2
-#   drugconc[, "cell_id"] <- as.character(drugconc[, "cell_id"])
+#   drugconc[, "cellid"] <- as.character(drugconc[, "cellid"])
 
 ## drug information
   if (verbose) { message("Read drug information") }
@@ -497,7 +497,7 @@ function (gene=TRUE, tmpdir="tmp", delete.tmpdir=FALSE, cosmic.annotation=FALSE,
   drugconc2[ , "min.Dose.uM"] <- rep(drugconc[ , "Min.Concentration.micromolar."], each=length(cellnall))
   drugconc2[ , "max.Dose.uM"] <- rep(drugconc[ , "Max.Concentration.micromolar."], each=length(cellnall))
   drugconc <- drugconc2
-  drugconc[, "cell_id"] <- as.character(drugconc[, "cell_id"])
+  drugconc[, "cellid"] <- as.character(drugconc[, "cellid"])
   
 
 
