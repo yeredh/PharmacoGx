@@ -10,6 +10,14 @@
 ## 
 #################################################
 
+
+###############
+## TODO cell_id ==?? cellid???
+###############
+
+
+
+
 `getCGP` <- 
 function (gene=TRUE, tmpdir="tmp", delete.tmpdir=FALSE, cosmic.annotation=FALSE, cosmic.version="v68", 
   replicates=c("last", "first", "all", "mean", "median"), verbose=FALSE, downloadMethod="wget") {
@@ -81,6 +89,12 @@ function (gene=TRUE, tmpdir="tmp", delete.tmpdir=FALSE, cosmic.annotation=FALSE,
   nn <- genefu::rename.duplicate(Biobase::pData(eset)[ , "cell_id"], sep="_")$new.x
   rownames(Biobase::pData(eset)) <- colnames(Biobase::exprs(eset)) <- nn
   
+  
+  ## ftp for new cgp data
+  ftpdir <- "ftp://ftp.ebi.ac.uk//pub/databases/microarray/data/experiment/MTAB/E-MTAB-783/"
+  
+  
+  
   ## get drug sensivity data
   if (verbose) { message("Download and format drug sensitivity data") }
   tmpfiles <- NULL
@@ -89,7 +103,7 @@ function (gene=TRUE, tmpdir="tmp", delete.tmpdir=FALSE, cosmic.annotation=FALSE,
   myfn <- file.path(tmpdir, "cgp_drug_sensitivity.csv")
   if(!file.exists(myfn)) {
     if (verbose) { message("Download drug sensitivity measurements") }
-    dwl.status <- download.file(url="ftp://ftp.sanger.ac.uk/pub4/cancerrxgene/releases/release-2.0/gdsc_manova_input_w2.csv", destfile=myfn, method=downloadMethod)
+    dwl.status <- download.file(url="ftp://ftp.sanger.ac.uk/pub/project/cancerrxgene/releases/release-5.0/gdsc_manova_input_w5.csv", destfile=myfn, method=downloadMethod)
     if(dwl.status != 0) { stop("Download failed, please rerun the pipeline!") }
     tmpfiles <- c(tmpfiles, myfn)
   }
@@ -98,7 +112,7 @@ function (gene=TRUE, tmpdir="tmp", delete.tmpdir=FALSE, cosmic.annotation=FALSE,
   myfn <- file.path(tmpdir, "cgp_drug_concentration.csv")
   if(!file.exists(myfn)) {
     if (verbose) { message("Download screening drug concentrations") }
-    dwl.status <- download.file(url="ftp://ftp.sanger.ac.uk/pub4/cancerrxgene/current_release/gdsc_compounds_conc_w2.csv", destfile=myfn, method=downloadMethod)
+    dwl.status <- download.file(url="ftp://ftp.sanger.ac.uk/pub/project/cancerrxgene/releases/release-5.0/gdsc_compounds_conc_w5.csv", destfile=myfn, method=downloadMethod)
     if(dwl.status != 0) { stop("Download failed, please rerun the pipeline!") }
     tmpfiles <- c(tmpfiles, myfn)
   }
@@ -108,7 +122,7 @@ function (gene=TRUE, tmpdir="tmp", delete.tmpdir=FALSE, cosmic.annotation=FALSE,
   if(!file.exists(myfn)) {
     if (verbose) { message("Download cell lines annotations") }
     ## annotations from GDSC (Genomics of Drug Sensitivity in Cancer)
-    dwl.status <- download.file(url="ftp://ftp.sanger.ac.uk/pub4/cancerrxgene/current_release/gdsc_cell_lines_w2.csv", destfile=file.path(tmpdir, "cgp_celline_collection.csv"), method=downloadMethod)
+    dwl.status <- download.file(url="ftp://ftp.sanger.ac.uk/pub/project/cancerrxgene/releases/release-5.0/gdsc_cell_lines_w5.csv", destfile=file.path(tmpdir, "cgp_celline_collection.csv"), method=downloadMethod)
     tmpfiles <- c(tmpfiles, file.path(tmpdir, "cgp_celline_collection.csv"))
     if(dwl.status != 0) { stop("Download failed, please rerun the pipeline!") }
     celline.gdsc <- read.csv(file=file.path(tmpdir, "cgp_celline_collection.csv"), stringsAsFactors=FALSE)
@@ -120,13 +134,17 @@ function (gene=TRUE, tmpdir="tmp", delete.tmpdir=FALSE, cosmic.annotation=FALSE,
     rownames(celline.gdsc) <- celline.gdsc[ , "CELL_LINE_NAME"]
     ## annotations from COSMIC
     if (cosmic.annotation) {
-      dwl.status <- download.file(url=sprintf("ftp://ftp.sanger.ac.uk/pub/CGP/cell_lines_project/data_export/CosmicCellLineProject_%s.tsv.gz", cosmic.version), destfile=file.path(tmpdir, sprintf("CosmicCellLineProject_%s.tsv.gz", cosmic.version)), method=downloadMethod)
+      
+      #       dwl.status <- download.file(url=sprintf("ftp://ftp.sanger.ac.uk/pub/CGP/cell_lines_project/data_export/CosmicCellLineProject_%s.tsv.gz", cosmic.version), destfile=file.path(tmpdir, sprintf("CosmicCellLineProject_%s.tsv.gz", cosmic.version)), method=downloadMethod)
+      
+      dwl.status <- getCosmic(em="bhk.labgroup@gmail.com", passw="pharmacogenomics", directory=file.path(tmpdir, sprintf("CosmicCellLineProject_%s.tsv.gz", cosmic.version)))
       if(dwl.status != 0) { stop("Download failed, please rerun the pipeline! It may be that there is a new version of the file CosmicCellLineProject, please look at ftp://ftp.sanger.ac.uk/pub/CGP/cosmic/data_export/ and update the script accordingly ...") }
       ## untar
       res <- R.utils::gunzip(filename=file.path(tmpdir, sprintf("CosmicCellLineProject_%s.tsv.gz", cosmic.version)), overwrite=TRUE)
       tmpfiles <- c(tmpfiles, file.path(tmpdir, sprintf("CosmicCellLineProject_%s.tsv", cosmic.version)))
       celline.cosmic <- read.csv(file=file.path(tmpdir, sprintf("CosmicCellLineProject_%s.tsv", cosmic.version)), sep="\t", stringsAsFactors=FALSE)
-      celline.cosmic[celline.cosmic == "" | celline.cosmic == " " | celline.cosmic == "  "] <- NA
+      cosmic.celline <- cosmic.celline[complete.cases(cosmic.celline[ , c("Sample.name", "Sample.source")]) & cosmic.celline[ , "Sample.source"] == "cell-line", , drop=FALSE]
+      cosmic.celline[cosmic.celline == "NS" | cosmic.celline == "" | cosmic.celline == " " | cosmic.celline == "  "] <- NA
       ## remove cell line with no name
       celline.cosmic <- celline.cosmic[!is.na(celline.cosmic[ , "Sample.name"]), , drop=FALSE]
       ## merge the gene targets
@@ -153,7 +171,8 @@ function (gene=TRUE, tmpdir="tmp", delete.tmpdir=FALSE, cosmic.annotation=FALSE,
       rownames(celline.cosmic) <- celline.cosmic[ , "Sample.name"]
     }
     ## merge GDSC and COSMIC annotations through COSMIC_ID
-    iix <- which(!is.na(celline.gdsc[ , "COSMIC_ID"]) & !is.element(celline.gdsc[ , "COSMIC_ID"], celline.cosmic[ , "ID_sample"]))
+    # iix <- which(!is.na(celline.gdsc[ , "COSMIC_ID"]) & !is.element(celline.gdsc[ , "COSMIC_ID"], celline.cosmic[ , "ID_sample"]))
+    iix <- which(complete.cases(celline.gdsc[ , c("CELL_LINE_NAME", "COSMIC_ID")]) & !is.element(celline.gdsc[ , "COSMIC_ID"], celline.cosmic[ , "ID_sample"]) & !is.element(celline.gdsc[ , "CELL_LINE_NAME"], celline.cosmic[ , "Sample.name"]))
     if (length(iix) == 0) {
       tt <- data.frame(matrix(NA, nrow=nrow(celline.cosmic) + length(iix), ncol=ncol(celline.cosmic), dimnames=list(c(rownames(celline.cosmic), rownames(celline.gdsc)[iix]), colnames(celline.cosmic))))
       tt[rownames(celline.cosmic), ] <- celline.cosmic
@@ -175,15 +194,24 @@ function (gene=TRUE, tmpdir="tmp", delete.tmpdir=FALSE, cosmic.annotation=FALSE,
   }
 
   ## download drug information
+  message("Download drug information")
+  myfn <- file.path(tmpdir, "cgp_drug_information.csv")
+  if (!file.exists(myfn)) {
+    # dwl.status <- download.file(url="http://www.cancerrxgene.org/action/ExportJsonTable/CSV", destfile=file.path(path.drug, "dwl", "export-Automatically_generated_table_data.csv"), quiet=TRUE)
+    # if(dwl.status != 0) { stop("Download failed, please rerun the pipeline!") }  
+    tables <- XML::readHTMLTable("http://www.cancerrxgene.org/translation/Drug")
+    drugs <- tables[1][[1]]
+    write.csv(drugs, row.names=FALSE, file=myfn)
+  }
   myfn <- file.path(tmpdir, "nature11005-s2.zip")
   if(!file.exists(myfn)) {
-    if (verbose) { message("Download drug information") }
+    if (verbose) { message("Download nature supplementary information") }
     dwl.status <- download.file(url="http://www.nature.com/nature/journal/v483/n7391/extref/nature11005-s2.zip", destfile=myfn, method=downloadMethod)
     if(dwl.status != 0) { stop("Download failed, please rerun the script!") }
   }
   ff <- as.character(unzip(zipfile=file.path(tmpdir, "nature11005-s2.zip"), list=TRUE)[1, 1])
   unzip(zipfile=file.path(tmpdir, "nature11005-s2.zip"), exdir=file.path(tmpdir))
-  tmpfiles <- c(tmpfiles, file.path(tmpdir, "Supplementary_data_final_Apr6.xls"))
+  tmpfiles <- c(tmpfiles, file.path(tmpdir, "nature_supplementary_information.xls"))
   
   ## phenotype for the drugs
   if (verbose) { message("Read drug sensitivity measurements") }
@@ -197,7 +225,8 @@ function (gene=TRUE, tmpdir="tmp", delete.tmpdir=FALSE, cosmic.annotation=FALSE,
   ## format column names
   coln2 <- unlist(drugpheno[1, ,drop=TRUE])
   coln2[coln2 == ""] <- NA
-  drugpheno <- drugpheno[-1, ,drop=FALSE]
+  #drugpheno <- drugpheno[-1, ,drop=FALSE]
+  drugpheno <- drugpheno[!is.na(drugpheno[ , "Cell.Line"]), ,drop=FALSE]
   coln <- colnames(drugpheno)
   coln2[is.na(coln2)] <- coln[is.na(coln2)]
   coln2 <- genefu::rename.duplicate(x=coln2, sep="_dupl")$new.x
@@ -217,6 +246,7 @@ function (gene=TRUE, tmpdir="tmp", delete.tmpdir=FALSE, cosmic.annotation=FALSE,
   dupln <- duplicated(drugpheno[ ,"Cell.Line"])
   if(sum(dupln) > 1) { warning("some cell lines are duplicated, only the first instance is kept") }
   drugpheno <- drugpheno[!dupln, , drop=FALSE]
+  
   if(any(!is.element(drugpheno[ ,"Cell.Line"], celline[ , "CELL_LINE_NAME"]))) { warning("Some cell line with drug sensitivity data have no annotations") }
   celln <- as.character(drugpheno[ ,"Cell.Line"])
   drugpheno <- data.frame("cell_id"=celln, drugpheno, stringsAsFactors=FALSE)
@@ -225,11 +255,18 @@ function (gene=TRUE, tmpdir="tmp", delete.tmpdir=FALSE, cosmic.annotation=FALSE,
   ## get mutational data, i.e., protein coding variants
   ## Genetic mutation data for cancer genes. Includes MSI status (1 = unstable and 0 = stable) and gene-fusions. A binary code 'x::y' description is used for each gene where 'x' identifies a coding variant and 'y' indicates copy number information from SNP6.0 data. For gene fusions, cell lines are identified as fusion not-detected (0) or the identified fusion is given. The following abbreviations are used: not analysed (na), not detected or wild-type (wt), no copy number information (nci).
   ## we assume that AKT2 and WT1 are the first and last genes in the file
-  rangeg <- which(colnames(drugpheno) == "AKT2"):which(colnames(drugpheno) == "WT1")
+  #rangeg <- which(colnames(drugpheno) == "AKT2"):which(colnames(drugpheno) == "WT1")
+  
+  rangeg <- which(colnames(drugpheno) == "AKT2"):which(colnames(drugpheno) == "MLL_AFF1")
+  
   mutation <- as.matrix(drugpheno[ , rangeg, drop=FALSE])
   mutation <- apply(X=mutation, MARGIN=c(1, 2), FUN=function(x) {
     x <- unlist(strsplit(x, split="::"))
     if(length(x) == 2) {
+      ####
+      # TODO Ask benjamin
+      # What is going on here?
+      ####
       if(!is.na(x[[1]]) && (x[[1]] == "na" || x[[1]] == "p.?" || x[[1]] == "p.0?")) {
         x <- NA
       } else {
@@ -250,6 +287,10 @@ function (gene=TRUE, tmpdir="tmp", delete.tmpdir=FALSE, cosmic.annotation=FALSE,
   celline[, "cell_id"] <- as.character(celline[, "cell_id"])
   Biobase::pData(eset)[, "cell_id"] <- as.character(Biobase::pData(eset)[, "cell_id"])
   drugpheno[, "cell_id"] <- as.character(drugpheno[, "cell_id"])
+  
+  #####
+  ## TODO What is going on here?
+  #####
   
   ## union of all cell line with data
   cellnall <- sort(unique(c(row.names(Biobase::pData(eset)), rownames(mutation), as.character(drugpheno[ ,"cell_id"]))))
@@ -292,56 +333,175 @@ function (gene=TRUE, tmpdir="tmp", delete.tmpdir=FALSE, cosmic.annotation=FALSE,
   rownames(tissue.type) <- tissue.type[ , 1]
   celline <- cbind("tissue.type"=tissue.type[match(celline[ , "cell_id"], tissue.type[ , "cell_id"]), "tissue.type"], celline)
 
-  ## drug information
+
+  # ## reproducibility between different screening sites
+ #    ## camptothecin was screened at MGH (drug id 195) and WTSI (drug id 1003)
+ #    ## data only available in the supplementary infomration of the Nature website
+ #    myfn2 <- file.path(saveres, "nature_supplinfo_drugpheno_cgp.RData")
+ #    if(!file.exists(myfn2)) {
+ #      drugpheno.nature <- gdata::read.xls(xls=file.path(path.drug, "nature_supplementary_information.xls"), sheet=2)
+ #      drugpheno.nature[drugpheno.nature == "" | drugpheno.nature == " "] <- NA
+ #      save(list="drugpheno.nature", compress=TRUE, file=myfn2)
+ #    } else { load(myfn2) }
+ #    ## format column names
+ #    coln2 <- gsub(" ", "", sapply(drugpheno.nature[1,], as.character))
+ #    coln2[coln2 == ""] <- NA
+ #    drugpheno.nature <- drugpheno.nature[-1, ,drop=FALSE]
+ #    coln <- colnames(drugpheno.nature)
+ #    coln2[is.na(coln2)] <- coln[is.na(coln2)]
+ #    coln2 <- genefu::rename.duplicate(x=coln2, sep="_dupl")$new.x
+ #    myx <- sapply(sapply(strsplit(coln2, "_"), function(x) { return(x[[1]]) }), Hmisc::all.is.numeric)
+ #    coln2[myx] <- paste("drugid", gsub(pattern=badchars, replacement="_", x=toupper(coln2[myx])), sep="_")
+ #    colnames(drugpheno.nature) <- coln2
+ #    myx <- sapply(strsplit(colnames(drugpheno.nature), "_"), function(x) { return(all(x[c(length(x)-1, length(x))] == c("IC", "50"))) })
+ #    ic50 <- drugpheno.nature[ , myx, drop=FALSE]
+ #    nn <- dimnames(ic50)
+ #    nn[[2]] <- gsub("_IC_50", "", nn[[2]])
+ #    ic50 <- apply(ic50, 2, as.numeric)
+ #    dimnames(ic50) <- nn
+ #    ic50 <- exp(ic50) / 10^6
+ #    ## camptothecin
+ #    pdf(file.path(saveres, "cgp_camptothecin_mgh_wtsi_paper.pdf"))
+ #    yy <- -log10(ic50[ , "drugid_195", drop=FALSE])
+ #    xx <- -log10(ic50[ , "drugid_1003", drop=FALSE])
+ #    ccix <- complete.cases(xx, yy)
+ #    nnn <- sum(ccix)
+ #    cc <- cor.test(x=xx, y=yy, method="spearman", use="complete.obs", alternative="greater")
+ #    cci <- spearmanCI(x=cc$estimate, n=sum(ccix))
+ #    par(mar=c(4, 4, 3, 1) + 0.1)
+ #    llim <- round(range(c(xx, yy), na.rm=TRUE) * 10) / 10
+ #    myScatterPlot(x=xx, y=yy, xlab="-log10 IC50 (WTSI)", ylab="-log10 IC50 (MGH)", main="CAMPTOTHECIN", pch=16, method="transparent", transparency=0.75)
+ #    legend(x=par("usr")[1], y=par("usr")[4], xjust=0.075, yjust=0.85, bty="n", legend=sprintf("Rs=%.3g, p=%.1E, n=%i", cc$estimate, cc$p.value, nnn), text.font=2)
+ #    dev.off()
+ # 
+ # 
+ # 
+ # 
+
+
+
+
+
+  # ## drug information
+#   if (verbose) { message("Read drug information") }
+#   myfn2 <- file.path(tmpdir, "nature_supplinfo_druginfo_cgp.RData")
+#   if(!file.exists(myfn2)) {
+#     druginfo <- gdata::read.xls(xls=file.path(tmpdir, "Supplementary_data_final_Apr6.xlsx"), sheet=4)
+#     druginfo[druginfo == "" | druginfo == " "] <- NA
+#     save(list="druginfo", compress=TRUE, file=myfn2)
+#   } else { load(myfn2) }
+#   druginfo <- data.frame("drug_id"=gsub(pattern =badchars, replacement="", x=toupper(druginfo[ ,"Drug.ID"])), druginfo, stringsAsFactors=FALSE)
+#   rownames(druginfo) <- druginfo[ ,"drug_id"] <- paste("drugid", as.character(druginfo[ ,"drug_id"]), sep="_")
+# 
+#   ## drug concentration
+#   if (verbose) { message("Read drug concentration") }
+#   drugconc <- read.csv(file.path(tmpdir, "cgp_drug_concentration.csv"), stringsAsFactors=FALSE)
+#   drugconc[drugconc == "" | drugconc == " "] <- NA
+#   drugconc <- data.frame("drug.name"=toupper(gsub(badchars, "", drugconc[ ,"Compound.Name"])), drugconc, stringsAsFactors=FALSE)
+#   if(all(!is.element(drugconc[ , "drug.name"], drugnid[ , "drug.name"]))) { stop("Screening concentration for drugs ithout identifiers!") }
+#   rownames(drugconc) <- rownames(drugnid)[match(drugconc[ , "drug.name"], drugnid[ , "drug.name"])]
+#   drugconc <- data.frame("drug_id"=rownames(drugconc), drugconc, stringsAsFactors=FALSE)
+# 
+#   ## combine all drugs
+#   dix <- sort(unique(c(rownames(druginfo), rownames(drugconc), paste("drugid", sapply(strsplit(colnames(drugpheno)[grep("^drugid_", colnames(drugpheno))], "_"), function(x) { return(x[[2]]) }), sep="_"))))
+#   ## update druginfo
+#   druginfo2 <- data.frame(matrix(NA, nrow=length(dix), ncol=ncol(druginfo), dimnames=list(dix, colnames(druginfo))))
+#   newlev <- sapply(druginfo, levels)
+#   newlev$drug_id <- sapply(strsplit(dix, split="_"), function(x) { return(x[2]) })
+#   druginfo2 <- genefu::setcolclass.df(df=druginfo2, colclass=sapply(druginfo, class), factor.levels=newlev)
+#   druginfo2[match(rownames(druginfo), dix), colnames(druginfo)] <- druginfo
+#   druginfo2[ , "drug_id"] <- newlev$drug_id
+#   druginfo <- druginfo2
+#   ## update drugconc
+#   drugconc2 <- data.frame(matrix(NA, nrow=length(dix), ncol=ncol(drugconc), dimnames=list(dix, colnames(drugconc))))
+#   newlev <- sapply(drugconc, levels)
+#   newlev$drug_id <- sapply(strsplit(dix, split="_"), function(x) { return(x[2]) })
+#   drugconc2 <- genefu::setcolclass.df(df=drugconc2, colclass=sapply(drugconc, class), factor.levels=newlev)
+#   drugconc2[match(rownames(drugconc), dix), colnames(drugconc)] <- drugconc
+#   drugconc2[ , "drug_id"] <- newlev$drug_id
+#   drugconc <- drugconc2
+# 
+#   ## report concentrations per cell line and per drug
+#   drugconc2 <- data.frame(matrix(NA, nrow=nrow(drugconc) * length(cellnall), ncol=6, dimnames=list(paste(rep(cellnall, times=nrow(drugconc)), rep(rownames(drugconc), each=length(cellnall)), sep="..."), c("cell_id", "drug_id", "drug_name", "nbr_conc_tested", "min_Dose_uM", "max_Dose_uM"))))
+#   drugconc2[ , "cell_id"] <- rep(cellnall, times=nrow(drugconc))
+#   drugconc2[ , "drug_id"] <- rep(rownames(drugconc), each=length(cellnall))
+#   drugconc2[ , "drug_name"] <- rep(as.character(drugconc[ ,"drug.name"]), each=length(cellnall))
+#   ## as mentioned in the supplementary information of Garnett et al., a single cell line is used on each plate and treated with 28 different drugs over a 9-pt, 256-fold concentration range
+#   drugconc2[ , "nbr_conc_tested"] <- 9
+#   drugconc2[ , "min_Dose_uM"] <- rep(drugconc[ , "Min.Concentration.micromolar."], each=length(cellnall))
+#   drugconc2[ , "max_Dose_uM"] <- rep(drugconc[ , "Max.Concentration.micromolar."], each=length(cellnall))
+#   drugconc <- drugconc2
+#   drugconc[, "cell_id"] <- as.character(drugconc[, "cell_id"])
+
+## drug information
   if (verbose) { message("Read drug information") }
+  druginfo <- read.csv(file.path(tmpdir, "cgp_drug_information.csv"))
+  druginfo[!is.na(druginfo) & (druginfo == " " | druginfo == " ")] <- NA
+  druginfo <- data.frame("drug.name"=toupper(gsub(badchars, "", druginfo[ ,"Name"])), druginfo)
+  myx <- match(druginfo[ , "drug.name"], drugnid[ , "drug.name"])
+  if (any(is.na(myx))) { stop ("Some drugs have missing annotations") }
+  ## correct ambiguity for AZD6482: drugid_156 corresponds to the first occurence of AZD6482 while drugid_1066 corresponds to the second
+  ## table(!is.na(drugpheno[ , "drugid_156_AUC"]))
+  ## table(!is.na(drugpheno[ , "drugid_1066_AUC"]))
+  myx[druginfo[ , "drug.name"] == "AZD6482"][2] <- which(drugnid[ , "drug.name"] == "AZD6482")[2]
+  druginfo <- data.frame("drugid"=rownames(drugnid)[myx], drugnid[myx, , drop=FALSE], druginfo)
+  rownames(druginfo) <- as.character(druginfo[ ,"drugid"])
+  ## complement drug infomration with the supplementary infomration from the Nature website
   myfn2 <- file.path(tmpdir, "nature_supplinfo_druginfo_cgp.RData")
   if(!file.exists(myfn2)) {
-    druginfo <- gdata::read.xls(xls=file.path(tmpdir, "Supplementary_data_final_Apr6.xlsx"), sheet=4)
-    druginfo[druginfo == "" | druginfo == " "] <- NA
-    save(list="druginfo", compress=TRUE, file=myfn2)
+    druginfo.nature <- gdata::read.xls(xls=file.path(tmpdir, "nature_supplementary_information.xls"), sheet=4)
+    druginfo.nature[druginfo.nature == "" | druginfo.nature == " "] <- NA
+    save(list="druginfo.nature", compress=TRUE, file=myfn2)
   } else { load(myfn2) }
-  druginfo <- data.frame("drug_id"=gsub(pattern =badchars, replacement="", x=toupper(druginfo[ ,"Drug.ID"])), druginfo, stringsAsFactors=FALSE)
-  rownames(druginfo) <- druginfo[ ,"drug_id"] <- paste("drugid", as.character(druginfo[ ,"drug_id"]), sep="_")
+  rownames(druginfo.nature) <- paste("drugid", druginfo.nature[ , "Drug.ID"], sep="_")
+  druginfo <- data.frame(druginfo, druginfo.nature[rownames(druginfo), c("Brand.name", "Site.of.screening", "Drug.type", "Drug.class.I", "Drug.class.II", "Target.family", "Effector.pathway.biological.process", "Clinical.trials", "Source")])
 
   ## drug concentration
-  if (verbose) { message("Read drug concentration") }
-  drugconc <- read.csv(file.path(tmpdir, "cgp_drug_concentration.csv"), stringsAsFactors=FALSE)
-  drugconc[drugconc == "" | drugconc == " "] <- NA
-  drugconc <- data.frame("drug.name"=toupper(gsub(badchars, "", drugconc[ ,"Compound.Name"])), drugconc, stringsAsFactors=FALSE)
-  if(all(!is.element(drugconc[ , "drug.name"], drugnid[ , "drug.name"]))) { stop("Screening concentration for drugs ithout identifiers!") }
-  rownames(drugconc) <- rownames(drugnid)[match(drugconc[ , "drug.name"], drugnid[ , "drug.name"])]
-  drugconc <- data.frame("drug_id"=rownames(drugconc), drugconc, stringsAsFactors=FALSE)
+  message("Read drug concentration")
+  drugconc <- read.csv(file.path(tmpdir, "cgp_drug_concentration.csv"))
+  drugconc[!is.na(drugconc) & (drugconc == "" | drugconc == " ")] <- NA
+  drugconc <- data.frame("drug.name"=toupper(gsub(badchars, "", drugconc[ ,"Compound.Name"])), drugconc)
+  if(all(!is.element(drugconc[ , "drug.name"], drugnid[ , "drug.name"]))) { stop("Screening concentration for drugs without identifiers!") }
+  myx <- match(drugconc[ , "drug.name"], drugnid[ , "drug.name"])
+  ## correct ambiguity for AZD6482: drugid_156 corresponds to the first occurence of AZD6482 while drugid_1066 corresponds to the second
+  myx[drugconc[ , "drug.name"] == "AZD6482"][2] <- which(drugnid[ , "drug.name"] == "AZD6482")[2]
+  rownames(drugconc) <- rownames(drugnid)[myx]
+  drugconc <- data.frame("drugid"=rownames(drugconc), drugconc)
 
   ## combine all drugs
   dix <- sort(unique(c(rownames(druginfo), rownames(drugconc), paste("drugid", sapply(strsplit(colnames(drugpheno)[grep("^drugid_", colnames(drugpheno))], "_"), function(x) { return(x[[2]]) }), sep="_"))))
   ## update druginfo
   druginfo2 <- data.frame(matrix(NA, nrow=length(dix), ncol=ncol(druginfo), dimnames=list(dix, colnames(druginfo))))
   newlev <- sapply(druginfo, levels)
-  newlev$drug_id <- sapply(strsplit(dix, split="_"), function(x) { return(x[2]) })
+  newlev$drugid <- sapply(strsplit(dix, split="_"), function(x) { return(x[2]) })
   druginfo2 <- genefu::setcolclass.df(df=druginfo2, colclass=sapply(druginfo, class), factor.levels=newlev)
   druginfo2[match(rownames(druginfo), dix), colnames(druginfo)] <- druginfo
-  druginfo2[ , "drug_id"] <- newlev$drug_id
+  druginfo2[ , "drugid"] <- newlev$drugid
   druginfo <- druginfo2
   ## update drugconc
   drugconc2 <- data.frame(matrix(NA, nrow=length(dix), ncol=ncol(drugconc), dimnames=list(dix, colnames(drugconc))))
   newlev <- sapply(drugconc, levels)
-  newlev$drug_id <- sapply(strsplit(dix, split="_"), function(x) { return(x[2]) })
+  newlev$drugid <- sapply(strsplit(dix, split="_"), function(x) { return(x[2]) })
   drugconc2 <- genefu::setcolclass.df(df=drugconc2, colclass=sapply(drugconc, class), factor.levels=newlev)
   drugconc2[match(rownames(drugconc), dix), colnames(drugconc)] <- drugconc
-  drugconc2[ , "drug_id"] <- newlev$drug_id
+  drugconc2[ , "drugid"] <- newlev$drugid
   drugconc <- drugconc2
 
   ## report concentrations per cell line and per drug
-  drugconc2 <- data.frame(matrix(NA, nrow=nrow(drugconc) * length(cellnall), ncol=6, dimnames=list(paste(rep(cellnall, times=nrow(drugconc)), rep(rownames(drugconc), each=length(cellnall)), sep="..."), c("cell_id", "drug_id", "drug_name", "nbr_conc_tested", "min_Dose_uM", "max_Dose_uM"))))
-  drugconc2[ , "cell_id"] <- rep(cellnall, times=nrow(drugconc))
-  drugconc2[ , "drug_id"] <- rep(rownames(drugconc), each=length(cellnall))
-  drugconc2[ , "drug_name"] <- rep(as.character(drugconc[ ,"drug.name"]), each=length(cellnall))
+  drugconc2 <- data.frame(matrix(NA, nrow=nrow(drugconc) * length(cellnall), ncol=6, dimnames=list(paste(rep(rownames(drugconc), times=length(cellnall)), rep(cellnall, each=nrow(drugconc)), sep="..."), c("cellid", "drugid", "drug.name", "nbr.conc.tested", "min.Dose.uM", "max.Dose.uM"))))
+  drugconc2[ , "cellid"] <- rep(cellnall, times=nrow(drugconc))
+  drugconc2[ , "drugid"] <- rep(rownames(drugconc), each=length(cellnall))
+  drugconc2[ , "drug.name"] <- rep(as.character(drugconc[ ,"drug.name"]), each=length(cellnall))
   ## as mentioned in the supplementary information of Garnett et al., a single cell line is used on each plate and treated with 28 different drugs over a 9-pt, 256-fold concentration range
-  drugconc2[ , "nbr_conc_tested"] <- 9
-  drugconc2[ , "min_Dose_uM"] <- rep(drugconc[ , "Min.Concentration.micromolar."], each=length(cellnall))
-  drugconc2[ , "max_Dose_uM"] <- rep(drugconc[ , "Max.Concentration.micromolar."], each=length(cellnall))
+  drugconc2[ , "nbr.conc.tested"] <- 9
+  drugconc2[ , "min.Dose.uM"] <- rep(drugconc[ , "Min.Concentration.micromolar."], each=length(cellnall))
+  drugconc2[ , "max.Dose.uM"] <- rep(drugconc[ , "Max.Concentration.micromolar."], each=length(cellnall))
   drugconc <- drugconc2
   drugconc[, "cell_id"] <- as.character(drugconc[, "cell_id"])
+  
+
+
+
 
   ## IC50 in micro molar
   if (verbose) { message("Extracting IC50 values") }
