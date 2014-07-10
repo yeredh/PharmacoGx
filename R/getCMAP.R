@@ -5,7 +5,7 @@
 ########################
 
 ########################################################
-## Get fRMA or RMA normalized CMAP data from InSilicoDB
+## Get fRMA or RMA normalized CMAP data
 ##
 ## 
 ########################################################
