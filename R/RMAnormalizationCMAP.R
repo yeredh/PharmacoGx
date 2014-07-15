@@ -366,7 +366,8 @@ function (gene=TRUE, downloadFiles=TRUE, datapath= file.path("data", "CMAP"), ra
 #       save(list=c("data.cmap", "annot.cmap", "sampleinfo.cmap", "druginfo.cmap"), compress=TRUE, file=fff)
 #     }  
   
-  } else { load(myfn) }
+  }
+  load(myfn)
   ret <- list("data.cmap"=data.cmap, "annot.cmap"=annot.cmap, "sampleinfo.cmap"=sampleinfo.cmap, "druginfo.cmap"=druginfo.cmap)
   return(ret)
 }
