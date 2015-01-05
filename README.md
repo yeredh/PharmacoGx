@@ -1,7 +1,7 @@
 PharmacoGx
 ==========
 
-R package to perform large-scale pharmacogenomic analysis of datasets stored in InSilicoDB
+R package to perform large-scale analysis of pharmacogenomic datasets
 
 Dependencies:
 
